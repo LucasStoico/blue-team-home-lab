@@ -1,0 +1,38 @@
+title: Tentativa de SQL Injection em Aplicação Web
+id: a3b4c5d6-7e8f-4a9b-0c1d-2e3f4a5b6c7d
+status: experimental
+description: >
+  Detecta padrões clássicos de SQL injection na query string de requisições
+  HTTP (ex.: ' OR 1=1, UNION SELECT, comentários SQL), indicando exploração de
+  aplicação web (T1190).
+author: Lucas Stoico Quirino
+date: 2024/03/17
+references:
+  - https://attack.mitre.org/techniques/T1190/
+  - https://owasp.org/Top10/A03_2021-Injection/
+tags:
+  - attack.initial_access
+  - attack.t1190
+logsource:
+  category: webserver
+detection:
+  keywords:
+    url.query|contains:
+      - "' OR '1'='1"
+      - ' OR 1=1'
+      - 'UNION SELECT'
+      - 'UNION ALL SELECT'
+      - '-- '
+      - '/*'
+      - 'information_schema'
+      - 'SLEEP('
+  condition: keywords
+fields:
+  - source.ip
+  - url.original
+  - http.request.method
+  - user_agent.original
+falsepositives:
+  - Buscas legítimas cujo texto contenha as palavras-chave (raro).
+  - Testes autorizados de segurança (DAST) — correlacionar com janela aprovada.
+level: high

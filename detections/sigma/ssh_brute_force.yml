@@ -1,0 +1,31 @@
+title: SSH Brute Force por IP de Origem
+id: 7b1d2c3a-4e5f-4a6b-8c9d-0e1f2a3b4c5d
+status: experimental
+description: >
+  Detecta múltiplas falhas de autenticação SSH a partir de um mesmo IP de
+  origem em uma janela curta, indicando tentativa de brute-force de
+  credenciais (T1110.001).
+author: Lucas Stoico Quirino
+date: 2024/03/15
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+tags:
+  - attack.credential_access
+  - attack.t1110.001
+logsource:
+  product: linux
+  service: sshd
+detection:
+  selection:
+    process.name: sshd
+    event.action: 'ssh_login_failed'
+  timeframe: 5m
+  condition: selection | count() by source.ip > 10
+fields:
+  - source.ip
+  - user.name
+  - host.name
+falsepositives:
+  - Automação/monitoramento mal configurado usando credenciais expiradas.
+  - Usuário legítimo com senha errada repetida (volume baixo, poucos usuários).
+level: medium

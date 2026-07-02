@@ -1,0 +1,40 @@
+# =============================================================================
+# Filebeat — coleta os logs do lab e envia ao Elasticsearch.
+# Lab isolado: sem TLS/credenciais. Não reutilize em produção.
+# =============================================================================
+
+filebeat.inputs:
+  - type: filestream
+    id: lab-auth-logs
+    enabled: true
+    paths:
+      - /var/log/lab/*.log
+      - /var/log/lab/*.sample
+    fields:
+      lab.source: ssh_auth
+    fields_under_root: false
+
+# Processadores leves de enriquecimento no ponto de coleta.
+processors:
+  - add_host_metadata: ~
+  - add_fields:
+      target: observer
+      fields:
+        pipeline: blue-team-home-lab
+
+# Índice de destino no Elasticsearch (lab single-node, sem auth).
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "lab-logs-%{+yyyy.MM.dd}"
+
+# Como usamos um índice custom, precisamos declarar o template.
+setup.template.name: "lab-logs"
+setup.template.pattern: "lab-logs-*"
+setup.ilm.enabled: false
+
+# Carrega os dashboards de exemplo no Kibana (opcional).
+setup.kibana:
+  host: "http://kibana:5601"
+
+logging.level: info
+logging.to_stderr: true

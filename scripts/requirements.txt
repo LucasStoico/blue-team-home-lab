@@ -1,0 +1,3 @@
+# O parser e o enriquecimento usam apenas a biblioteca padrão do Python.
+# pytest é necessário somente para rodar a suíte de testes.
+pytest>=7.0

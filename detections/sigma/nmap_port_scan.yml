@@ -1,0 +1,30 @@
+title: Port Scan / Reconhecimento de Rede (padrão Nmap)
+id: 9c2e3d4b-5f6a-4b7c-9d0e-1f2a3b4c5d6e
+status: experimental
+description: >
+  Detecta um único IP de origem tocando muitas portas de destino distintas em
+  uma janela curta — assinatura típica de varredura de portas (Nmap) na fase
+  de reconhecimento da Cyber Kill Chain.
+author: Lucas Stoico Quirino
+date: 2024/03/16
+references:
+  - https://attack.mitre.org/techniques/T1046/
+tags:
+  - attack.discovery
+  - attack.t1046
+logsource:
+  category: network_connection
+  product: linux
+detection:
+  selection:
+    event.action: 'network_flow'
+  timeframe: 1m
+  condition: selection | count(destination.port) by source.ip > 100
+fields:
+  - source.ip
+  - destination.port
+  - destination.ip
+falsepositives:
+  - Scanners de vulnerabilidade autorizados (ex.: agenda de varredura interna).
+  - Ferramentas de monitoramento de disponibilidade.
+level: medium

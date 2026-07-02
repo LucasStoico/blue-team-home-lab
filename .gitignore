@@ -1,0 +1,18 @@
+# Logs ingeridos localmente (não versionar dados do lab)
+data/logs/*
+!data/logs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Elastic/Docker
+esdata/
+
+# SO / editor
+.DS_Store
+.idea/
+.vscode/

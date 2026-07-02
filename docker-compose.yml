@@ -1,0 +1,87 @@
+# =============================================================================
+# Blue Team Home Lab — stack de detecção
+# -----------------------------------------------------------------------------
+# ATENÇÃO: ambiente de LABORATÓRIO ISOLADO. A segurança do Elasticsearch está
+# desabilitada e os alvos são propositalmente vulneráveis. NUNCA exponha estes
+# serviços à Internet nem use estas configurações em produção. Rode em uma rede
+# isolada / VM dedicada.
+# =============================================================================
+
+services:
+  # --- SIEM: armazenamento e busca -------------------------------------------
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: btl-elasticsearch
+    environment:
+      - node.name=btl-es01
+      - discovery.type=single-node
+      - xpack.security.enabled=false          # LAB ONLY — jamais em produção
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "127.0.0.1:9200:9200"                 # bind só no localhost
+    networks: [btl]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q status"]
+      interval: 20s
+      timeout: 10s
+      retries: 12
+
+  # --- SIEM: visualização e investigação -------------------------------------
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: btl-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+    networks: [btl]
+
+  # --- Coleta: shipper de logs -----------------------------------------------
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    container_name: btl-filebeat
+    user: root
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./config/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./data/logs:/var/log/lab:ro           # coloque aqui os auth.log a ingerir
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+    networks: [btl]
+
+  # --- Alvo 1: host SSH (gera eventos de autenticação) -----------------------
+  victim-ssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: btl-victim-ssh
+    hostname: victim
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PASSWORD_ACCESS=true
+      - USER_NAME=labuser
+      - USER_PASSWORD=labuser                 # senha fraca PROPOSITAL — alvo de lab
+    ports:
+      - "127.0.0.1:2222:2222"
+    networks: [btl]
+
+  # --- Alvo 2: app web vulnerável (gera eventos HTTP/ataques web) ------------
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: btl-dvwa
+    ports:
+      - "127.0.0.1:8080:80"
+    networks: [btl]
+
+volumes:
+  esdata:
+
+networks:
+  btl:
+    driver: bridge
